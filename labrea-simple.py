@@ -1,41 +1,38 @@
 import sys
 import socket
 import select
+import asyncio
+
+async def listen_thread(reader, writer):
+    while True:
+        data = await reader.read(64)
+
+async def start_servers(host, port):
+    try:
+        server = await asyncio.start_server(listen_thread, host, port)
+    except:
+        return
+    await server.serve_forever()
 
 def start (ignorePorts):
 
     host = ''
-    maxCon = 5
     
-    sockets = []
+    loop = asyncio.get_event_loop()
     
-    for port in range(1000, 65535):
-        if not port in ignorePorts:
-            print("creating socket for port:", port)
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # catch errors where port is already taken
-            try:
-                s.bind((host, port))
-            except:
-                continue
-            s.listen(maxCon)
-            sockets.append(s)
-
-    run = True
-    
-    while run:
-        readySockets,_,_ = select.select(sockets, [], [], 1)
-
-        for s in readySockets:
-            #data, addr = s.recvfrom(64)
-            client,addr = s.accept()
+    try:
+        for port in range(1000, 65535):
+            if not port in ignorePorts:
+                print("creating socket for port:", port)
+                #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # catch errors where port is already taken
+                loop.create_task(start_servers(host, port))
+        loop.run_forever()
+    except Exception as exc:
+        print(exc)
+        
 
     print("Quitting")
-
-    for s in sockets:
-        s.close()
-
-    print("All sockets closed")
 
 
 ignorePorts = []
